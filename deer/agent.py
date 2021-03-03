@@ -68,6 +68,7 @@ class NeuralAgent(object):
         self._dataset = DataSet(environment, max_size=replay_memory_size, random_state=random_state, use_priority=self._exp_priority, only_full_history=self._only_full_history)
         self._tmp_dataset = None # Will be created by startTesting() when necessary
         self._mode = -1
+        self._totalModeNbrEpisode = 0
         self._total_mode_reward = 0
         self._training_loss_averages = []
         self._Vs_on_last_episode = []
@@ -135,7 +136,7 @@ class NeuralAgent(object):
         else:
             return 0
 
-    def totalRewardOverLastTest(self):
+    def totalRewardOverLastTest(self): #misleading name
         """ Returns the average sum of rewards per episode and the number of episode
         """
         return self._total_mode_reward/self._totalModeNbrEpisode, self._totalModeNbrEpisode

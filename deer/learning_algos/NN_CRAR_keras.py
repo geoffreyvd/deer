@@ -81,7 +81,7 @@ class NN():
                     self._pooling_encoder=1
                     
                 if(self._high_int_dim==True):
-                    x = Conv2D(self.n_channels_internal_dim, (1, 1), padding='same')(x)
+                    x = Conv2D(self.n_channels_internal_dim, (1, 1), padding='same')(x) #1by1 conv used for dim reduction
                     out = x
                 else:
                     out = Flatten()(x)
