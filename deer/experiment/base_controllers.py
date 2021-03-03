@@ -11,6 +11,7 @@ an episode ends.
 import numpy as np
 import joblib
 import os
+import matplotlib.pyplot as plt
 
 class Controller(object):
     """A base controller that does nothing when receiving the various signals emitted by an agent. This class should 
@@ -518,7 +519,7 @@ class FindBestController(Controller):
         A unique filename (basename for score and network dumps).
     """
 
-    def __init__(self, validationID=0, testID=None, unique_fname="nnet"):
+    def __init__(self, validationID=0, testID=None, unique_fname="nnet", hasReward=True):
         super(self.__class__, self).__init__()
 
         self._validationScores = []
@@ -529,6 +530,7 @@ class FindBestController(Controller):
         self._validationID = validationID
         self._filename = unique_fname
         self._bestValidationScoreSoFar = -9999999
+        self._hasReward = hasReward
 
     def onEpochEnd(self, agent):
         if (self._active == False):
@@ -539,14 +541,37 @@ class FindBestController(Controller):
             score, _ = agent.totalRewardOverLastTest()
             self._validationScores.append(score)
             self._epochNumbers.append(self._trainingEpochCount)
-            if score > self._bestValidationScoreSoFar:
-                self._bestValidationScoreSoFar = score
+            if self._hasReward:
+                if score > self._bestValidationScoreSoFar: #if no reward it stays at 0
+                    self._bestValidationScoreSoFar = score
+                    agent.dumpNetwork(self._filename, self._trainingEpochCount)
+            else:
                 agent.dumpNetwork(self._filename, self._trainingEpochCount)
         elif mode == self._testID:
             score, _ = agent.totalRewardOverLastTest()
             self._testScores.append(score)
         else:
             self._trainingEpochCount += 1
+
+        
+        if mode == self._validationID:
+            #plot reward over time
+            plt.plot(range(1, len(self._validationScores)+1), self._validationScores, label="VS", color='b')
+            plt.legend()
+            plt.xlabel("Number of epochs")
+            plt.ylabel("Score")
+            plt.savefig("normal_maze" + "_validation_scores.pdf")
+            plt.close()
+            # plt.show()
+        elif mode == self._testID:
+            #plot reward over time
+            plt.plot(range(1, len(self._testScores)+1), self._testScores, label="TS", color='b')
+            plt.legend()
+            plt.xlabel("Number of epochs")
+            plt.ylabel("Score")
+            plt.savefig("normal_maze" + "_test_scores.pdf")
+            plt.close()
+            # plt.show()
         
     def onEnd(self, agent):
         if (self._active == False):

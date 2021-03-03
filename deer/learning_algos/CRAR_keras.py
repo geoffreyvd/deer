@@ -14,6 +14,9 @@ from .NN_CRAR_keras import NN # Default Neural network used
 #sess = tf.Session(config=config)
 import copy
 
+UPDATE_AFTER_STEPS= 500. 
+
+
 def mean_squared_error_p(y_true, y_pred):
     """ Modified mean square error that clips
     """
@@ -64,7 +67,7 @@ class CRAR(LearningAlgo):
     neural_network : object, optional
         Default is deer.learning_algos.NN_keras
     """
-
+ 
     def __init__(self, environment, rho=0.9, rms_epsilon=0.0001, momentum=0, clip_norm=0, freeze_interval=1000, batch_size=32, update_rule="rmsprop", random_state=np.random.RandomState(), double_Q=False, neural_network=NN, **kwargs):
         """ Initialize the environment
         
@@ -95,7 +98,7 @@ class CRAR(LearningAlgo):
         self.learn_and_plan = neural_network(self._batch_size, self._input_dimensions, self._n_actions, self._random_state, high_int_dim=self._high_int_dim, internal_dim=self._internal_dim)
 
         self.encoder = self.learn_and_plan.encoder_model()
-        self.encoder_diff = self.learn_and_plan.encoder_diff_model(self.encoder)
+        self.encoder_diff = self.learn_and_plan.encoder_diff_model(self.encoder) #TODO this might be a problemin case of transfer learning
         
         self.R = self.learn_and_plan.float_model()
         self.Q = self.learn_and_plan.Q_model()
@@ -173,6 +176,30 @@ class CRAR(LearningAlgo):
         for i,p in enumerate(self.params):
             K.set_value(p,list_of_values[i])
 
+    def freezeAllLayersExceptEncoder(self):
+        # layers=self.encoder.layers+self.Q.layers+self.R.layers+self.gamma.layers+self.transition.layers
+        layersToBeFixed=self.Q.layers+self.R.layers+self.gamma.layers+self.transition.layers
+        for layer in layersToBeFixed:
+            layer.trainable = False
+        # Compile all models
+        self._compile()
+        print("Q netweork")
+        self.Q.summary(line_length=None, positions=None, print_fn=None)
+        print("encoder netweork")
+        self.encoder.summary(line_length=None, positions=None, print_fn=None)
+
+    def resetEncoder(self):
+        # self.encoder = self.learn_and_plan.encoder_model()
+
+        weights = self.encoder.get_weights()
+        weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
+        # Faster, but less random: only permutes along the first dimension
+        # weights = [np.random.permutation(w) for w in weights]
+        self.encoder.set_weights(weights)
+        # self.encoder_diff = self.learn_and_plan.encoder_diff_model(self.encoder) #?!
+        # Compile all models
+        self._compile()
+      
     def train(self, states_val, actions_val, rewards_val, next_states_val, terminals_val):
         """
         Train CRAR from one batch of data.
@@ -208,9 +235,9 @@ class CRAR(LearningAlgo):
         Es_=self.encoder.predict(next_states_val)
         Es=self.encoder.predict(states_val)
         ETs=self.transition.predict([Es,onehot_actions])
-        R=self.R.predict([Es,onehot_actions])
+        R=self.R.predict([Es,onehot_actions]) #interesting, try this appraoch
                    
-        if(self.update_counter%500==0):
+        if(self.update_counter%UPDATE_AFTER_STEPS==0):
             print ("Printing a few elements useful for debugging:")
             #print ("states_val[0][0]")
             #print (states_val[0][0])
@@ -228,7 +255,7 @@ class CRAR(LearningAlgo):
             
         # Fit transition
         self.loss_T+=self.diff_Tx_x_.train_on_batch(states_val+next_states_val+[onehot_actions]+[(1-terminals_val)], np.zeros_like(Es))
-        
+
         # Fit rewards
         self.lossR+=self.full_R.train_on_batch(states_val+[onehot_actions], rewards_val)
 
@@ -240,7 +267,7 @@ class CRAR(LearningAlgo):
         self.loss_disambiguate1+=self.encoder.train_on_batch(states_val,np.zeros_like(Es)) #np.zeros((self._batch_size,self.learn_and_plan.internal_dim)))
 
         # Increase the entropy in the abstract features of two states
-        # This works only when states_val is made up of only one observation --> FIXME
+        # This works only when states_val is made up of only one observation --> FIXME?
         rolled=np.roll(states_val[0],1,axis=0)
         self.loss_disambiguate2+=self.encoder_diff.train_on_batch([states_val[0],rolled],np.reshape(np.zeros_like(Es),(self._batch_size,-1)))
 
@@ -249,6 +276,7 @@ class CRAR(LearningAlgo):
         # Interpretable AI
         if(self._high_int_dim==False):
             target_modif_features=np.zeros((self._n_actions,self._internal_dim))
+            #refactor: This should be done with a flag or something
             ## Catcher
             #target_modif_features[0,0]=1    # dir
             #target_modif_features[1,0]=-1   # opposite dir
@@ -270,13 +298,13 @@ class CRAR(LearningAlgo):
     
 
         
-        if(self.update_counter%500==0):
+        if(self.update_counter%UPDATE_AFTER_STEPS==0):
             print ("self.loss_T/500., self.lossR/500., self.loss_gamma/500., self.loss_Q/500., self.loss_disentangle_t/500., self.loss_disambiguate1/500., self.loss_disambiguate2/500.")
-            print (self.loss_T/500., self.lossR/500.,self.loss_gamma/500., self.loss_Q/500., self.loss_disentangle_t/500., self.loss_disambiguate1/500., self.loss_disambiguate2/500.)
+            print (self.loss_T/UPDATE_AFTER_STEPS, self.lossR/UPDATE_AFTER_STEPS,self.loss_gamma/UPDATE_AFTER_STEPS, self.loss_Q/UPDATE_AFTER_STEPS, self.loss_disentangle_t/UPDATE_AFTER_STEPS, self.loss_disambiguate1/UPDATE_AFTER_STEPS, self.loss_disambiguate2/UPDATE_AFTER_STEPS)
 
             if(self._high_int_dim==False):
                 print ("self.loss_interpret/500.")
-                print (self.loss_interpret/500.)
+                print (self.loss_interpret/UPDATE_AFTER_STEPS)
 
             self.lossR=0
             self.loss_gamma=0
@@ -477,7 +505,7 @@ class CRAR(LearningAlgo):
                 repeat_identity=identity_matrix[ind].reshape(n*this_branching_factor,self._n_actions)
                 tile3_encoded_x=np.repeat(state_abstr_val,this_branching_factor,axis=0)
             
-            r_vals_d0=np.array(R.predict([tile3_encoded_x,repeat_identity]))
+            r_vals_d0=np.array(R.predict([tile3_encoded_x,repeat_identity])) #interesting if other method doesnt work
             r_vals_d0=r_vals_d0.flatten()
             
             gamma_vals_d0=np.array(gamma.predict([tile3_encoded_x,repeat_identity]))
@@ -504,7 +532,7 @@ class CRAR(LearningAlgo):
 
         if(mode==None):
             mode=0
-        di=[0,1,3,6]
+        di=[0,1,3,6] #FIX ME hard coded expiremnt setup in learning algo object 
         # We use the mode to define the planning depth
         q_vals = self.qValues_planning([np.expand_dims(s,axis=0) for s in copy_state],self.R,self.gamma, self.transition, self.Q, d=di[mode])
 
@@ -548,6 +576,7 @@ class CRAR(LearningAlgo):
         self.diff_s_s_.compile(optimizer=optimizer6,
                   loss=exp_dec_error)
 
+        #why is the high_int_dim flag coupled with the cosine proximity loss
         if(self._high_int_dim==False):
             self.force_features.compile(optimizer=optimizer7,
                   loss=cosine_proximity2)

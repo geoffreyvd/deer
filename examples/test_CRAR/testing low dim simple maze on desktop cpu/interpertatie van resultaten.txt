@@ -1,0 +1,62 @@
+aantal slechte resultaten door lage replay memory size daardoor kans dat sommige state/actions er niet in zitten
+
+
+12-2-2021
+test gedaan met normale env in nieuwe run_sample, blijkt goed te werken dus probleem ligt bij nieuwe env met andere obs. ookal lijkt hij wel weer opnieuw te beginnen (ipv gelijk de optimale reprsentation net zoals bij de volledig getrainde), dus wellicht doet het laden van het netwerk het niet goed? of niet goed opgeslagen (epoch=1?!) probably pakt hij dus gewoon de eerste epoch, lijkt er indd op, datum veradnert niet
+
+duidelijk, het komt dus omdat het nn dump niet wordt upgedate, het maar een keer weg geschrven
+
+
+
+14-2-2021
+het werkt soort van, eerste iteratie lijkt de vorm te hebben maar niet def juiste onderlinge relaties heleamal, zou kunnen komen doordat de replay memory niet compleet is (niet alle paden), dit gebruikt overigens de opgeslagen encoder
+
+TODO
+reset encoder naar fresh en zie of dat sneller leert
+
+92backup: lijkt niet goed te werken, misschien was de replaymemory niet compleet
+dit blijkt zelfs met de zelfde env gedaan te zijn (probably door te hoge learning rate..)
+
+15-2-2021
+learning rate moet indd een stuk lager met tranfer learning 0.0005 > 0.0001
+
+16-2-2021
+running three experiments:
+root: transfer with new env and old encoder SUCCESS (95)
+testing from startt: testing new env from stratch SUCCESS (testing_inverse_env_from_start 2)
+testing resetting encoder: trasnfer with new env and set encoder to init (probably error, due to encoder_diff or soemthing)
+
+
+16-2-2021
+TODO plot error over time
+-learning new env from scratch
+-transfer learning new env from old env freezing all except encoder (having same encoder)
+-transfer learning new env from old env freezing all except encoder (re-initializing encoder)
+
+re-initializing seems to be better
+probeer ook nog andere LEARNING_RATE_DECAY
+
+different learning rate for transfer
+normal 0.00015 (or 0.0001 not sure) 		converged by 5/6de iter
+bigger lr decay, 0.0001 decay = 0.6 (ipv 0.9)	converged niet
+smaller lr, 0.000075				converged niet
+bigger lr 0.00023				converged ~15de iter
+smaller lr, 0.00013 				geen full run, maar slechter dan 0.00011
+smaller lr, 0.00011				converged 2de iteratie (zo goed als) (nah niet perfect, 8 is perfect)  beste! misschien nog lager zelfs beter
+bigger lr, 0.00018				converged 2de iteratie, maar daarna weer slechter tot de 7de iter
+bigger lr decay, 0.00023 decay = 0.77		converged plots bij 6de iter, dan weer slechter en dan weer converge bij 8ste iter
+bigger lr decay, 0.00026 decay = 0.6		converged niet (overshoots big en then freezes)
+bigger lr decay, 0.00034 decay = 0.4		converged niet (overshoots big en then freezes)
+
+
+proberen:
+verschil tussen 0.00015 en 0.0001
+iets grotere lr (tussen 0.00023)
+een grotere lr decay (~75) maar dan met een groter beginnende lr
+
+
+bij het gebruik van reverse=true lijken de lijnen in de plot dubbel, kan komen door andere env file so np
+
+
+
+
