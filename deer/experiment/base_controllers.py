@@ -548,23 +548,22 @@ class FindBestController(Controller):
             self._testScores.append(score)
         else:
             self._trainingEpochCount += 1
-             
+
+        #live plotting of reward over time
         if mode == self._validationID:
-            #plot reward over time
             plt.plot(range(1, len(self._validationScores)+1), self._validationScores, label="VS", color='b')
             plt.legend()
             plt.xlabel("Number of epochs")
             plt.ylabel("Score")
-            plt.savefig("normal_maze" + "_validation_scores.pdf")
+            plt.savefig("validation_scores.pdf")
             plt.close()
             # plt.show()
         elif mode == self._testID:
-            #plot reward over time
             plt.plot(range(1, len(self._testScores)+1), self._testScores, label="TS", color='b')
             plt.legend()
             plt.xlabel("Number of epochs")
             plt.ylabel("Score")
-            plt.savefig("normal_maze" + "_test_scores.pdf")
+            plt.savefig("test_scores.pdf")
             plt.close()
             # plt.show()
         
