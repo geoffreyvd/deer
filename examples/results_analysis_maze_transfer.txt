@@ -1,4 +1,6 @@
-0.0001 works, gits score 1 at epoch~35, is basically converged around ~42
+maze meta-learning on laptop with high dim obs and high internal state dim
+
+0.0001 works, gets score 1 at epoch~35, is basically converged around ~42
 0.00013(? maybe 0.0002) with decay 0.95 didnt work
 0.00017 didnt converge
 0.000115 doesnt converge
