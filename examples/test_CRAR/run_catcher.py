@@ -10,7 +10,7 @@ import os
 
 from deer.default_parser import process_args
 from deer.agent import NeuralAgent
-from deer.learning_algos.CRAR_modif_keras import CRAR
+from deer.learning_algos.CRAR_keras import CRAR
 from catcher_env import MyEnv as catcher_env
 import deer.experiment.base_controllers as bc
 
@@ -138,8 +138,8 @@ if __name__ == "__main__":
     agent.attach(bc.TrainerController(
         evaluate_on='action', 
         periodicity=parameters.update_frequency, 
-        show_episode_avg_V_value=True, 
-        show_avg_Bellman_residual=True))
+        show_episode_avg_V_value=False, 
+        show_avg_Bellman_residual=False))
 
     # Every epoch end, one has the possibility to modify the learning rate using a LearningRateController. Here we 
     # wish to update the learning rate after every training epoch (periodicity=1), according to the parameters given.
@@ -155,6 +155,11 @@ if __name__ == "__main__":
         discount_factor_max=parameters.discount_max,
         periodicity=1))
         
+    
+    agent.attach(bc.FindBestController(
+        validationID=catcher_env.VALIDATION_MODE,
+        testID=None,
+        unique_fname=fname))
     # All previous controllers control the agent during the epochs it goes through. However, we want to interleave a 
     # "validation epoch" between each training epoch ("one of two epochs", hence the periodicity=2). We do not want 
     # these validation epoch to interfere with the training of the agent, which is well established by the 

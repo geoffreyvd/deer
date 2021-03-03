@@ -1,0 +1,15 @@
+0.0001 works, gits score 1 at epoch~35, is basically converged around ~42
+0.00013(? maybe 0.0002) with decay 0.95 didnt work
+0.00017 didnt converge
+0.000115 doesnt converge
+
+without reset of weights
+0.0001 reaches 1 at 50,  converges after ~60
+0.00009 reaches 1 at 30, converges 35
+0.000072 reaches 1 at 28, converges ~35
+0.00005 reaches 1 at 48, <skipped>
+
+but with smaller replay size:
+0.0001 doesnt converge
+0.0002 doesnt converge
+

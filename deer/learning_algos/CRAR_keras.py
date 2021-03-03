@@ -8,10 +8,14 @@ from keras.optimizers import SGD,RMSprop
 from keras import backend as K
 from ..base_classes import LearningAlgo
 from .NN_CRAR_keras import NN # Default Neural network used
-#import tensorflow as tf
+import tensorflow as tf
 #config = tf.ConfigProto()
 #config.gpu_options.allow_growth=True
 #sess = tf.Session(config=config)
+
+tf.config.experimental.set_memory_growth(tf.config.list_physical_devices('GPU')[0], True)
+
+
 import copy
 
 def mean_squared_error_p(y_true, y_pred):
@@ -173,6 +177,31 @@ class CRAR(LearningAlgo):
         for i,p in enumerate(self.params):
             K.set_value(p,list_of_values[i])
 
+    def freezeAllLayersExceptEncoder(self):
+        print("TEST CAN YOU SEE THIS MESSAGE?") 
+        # layers=self.encoder.layers+self.Q.layers+self.R.layers+self.gamma.layers+self.transition.layers
+        layersToBeFixed=self.Q.layers+self.R.layers+self.gamma.layers+self.transition.layers
+        for layer in layersToBeFixed:
+            layer.trainable = False
+        # Compile all models
+        self._compile()
+        print("Q netweork")
+        self.Q.summary(line_length=None, positions=None, print_fn=None)
+        print("encoder netweork")
+        self.encoder.summary(line_length=None, positions=None, print_fn=None)
+
+    def resetEncoder(self):
+        # self.encoder = self.learn_and_plan.encoder_model()
+
+        weights = self.encoder.get_weights()
+        weights = [np.random.permutation(w.flat).reshape(w.shape) for w in weights]
+        # Faster, but less random: only permutes along the first dimension
+        # weights = [np.random.permutation(w) for w in weights]
+        self.encoder.set_weights(weights)
+        # self.encoder_diff = self.learn_and_plan.encoder_diff_model(self.encoder) #?!
+        # Compile all models
+        self._compile()
+        
     def train(self, states_val, actions_val, rewards_val, next_states_val, terminals_val):
         """
         Train CRAR from one batch of data.
