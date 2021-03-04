@@ -10,7 +10,7 @@ import os
 
 from deer.default_parser import process_args
 from deer.agent import NeuralAgent
-from deer.learning_algos.CRAR_keras import CRAR
+from deer.learning_algos.CRAR_keras_categoric_abs import CRAR
 from simple_maze_env_with_reward import MyEnv as simple_maze_env
 import deer.experiment.base_controllers as bc
 

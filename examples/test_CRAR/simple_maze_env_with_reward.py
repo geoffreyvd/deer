@@ -175,6 +175,8 @@ class MyEnv(Environment):
         R=learning_algo.R.predict([all_possib_abs_states,onehot_actions])
         print (R[0])
         print (R)
+
+        #TODO add new head, see if reward model can still predict correctly
         
 
 
